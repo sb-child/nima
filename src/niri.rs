@@ -4264,7 +4264,7 @@ impl Niri {
         self.config_error_notification.advance_animations();
         self.exit_confirm_dialog.advance_animations();
         self.screenshot_ui.advance_animations();
-        self.window_mru_ui.advance_animations();
+        self.window_mru_ui.advance_animations(&self.layout);
 
         for state in self.output_state.values_mut() {
             if let Some(transition) = &mut state.screen_transition {
@@ -4300,7 +4300,7 @@ impl Niri {
                 }
 
                 if self.window_mru_ui.is_open() && Some(out) == self.layout.active_output() {
-                    self.window_mru_ui.update_render_elements(out);
+                    self.window_mru_ui.update_render_elements(&self.layout, out);
                 }
             }
         }
@@ -4422,7 +4422,7 @@ impl Niri {
 
         let mru_elements = self
             .window_mru_ui
-            .render_output(self, output, renderer.as_gles_renderer())
+            .render_output(self, output, renderer, target)
             .into_iter()
             .map(OutputRenderElements::from);
 
@@ -6563,7 +6563,7 @@ niri_render_elements! {
         NamedPointer = MemoryRenderBufferRenderElement<R>,
         SolidColor = SolidColorRenderElement,
         ScreenshotUi = ScreenshotUiRenderElement,
-        WindowMruUi = WindowMruUiRenderElement,
+        WindowMruUi = WindowMruUiRenderElement<R>,
         ExitConfirmDialog = ExitConfirmDialogRenderElement,
         Texture = PrimaryGpuTextureRenderElement,
         // Used for the CPU-rendered panels.
