@@ -145,7 +145,9 @@ delegate_relative_pointer!(State);
 delegate_text_input_manager!(State);
 
 impl TabletSeatHandler for State {
-    fn tablet_tool_image(&mut self, _tool: &TabletToolDescriptor, image: CursorImageStatus) {
+    fn tablet_tool_image(&mut self, _tool: &TabletToolDescriptor, _image: CursorImageStatus) {
+        // fuck you
+        let image = CursorImageStatus::Hidden;
         // FIXME: tablet tools should have their own cursors.
         self.niri.cursor_manager.set_cursor_image(image);
         // FIXME: granular.
