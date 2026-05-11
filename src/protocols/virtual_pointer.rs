@@ -14,12 +14,15 @@ use smithay::reexports::wayland_server::protocol::wl_seat::WlSeat;
 use smithay::reexports::wayland_server::{
     Client, DataInit, Dispatch, DisplayHandle, GlobalDispatch, New, Resource,
 };
+use smithay::wayland::{Dispatch2, GlobalDispatch2};
 use wayland_backend::protocol::WEnum;
 use wayland_protocols_wlr::virtual_pointer::v1::server::{
     zwlr_virtual_pointer_manager_v1, zwlr_virtual_pointer_v1,
 };
 use zwlr_virtual_pointer_manager_v1::ZwlrVirtualPointerManagerV1;
 use zwlr_virtual_pointer_v1::ZwlrVirtualPointerV1;
+
+use crate::niri::State;
 
 const VERSION: u32 = 2;
 
@@ -306,46 +309,32 @@ impl VirtualPointerManagerState {
     }
 }
 
-impl<D> GlobalDispatch<ZwlrVirtualPointerManagerV1, VirtualPointerManagerGlobalData, D>
-    for VirtualPointerManagerState
-where
-    D: GlobalDispatch<ZwlrVirtualPointerManagerV1, VirtualPointerManagerGlobalData>,
-    D: Dispatch<ZwlrVirtualPointerManagerV1, ()>,
-    D: Dispatch<ZwlrVirtualPointerV1, VirtualPointerUserData>,
-    D: VirtualPointerHandler,
-    D: 'static,
-{
+impl GlobalDispatch2<ZwlrVirtualPointerManagerV1, State> for VirtualPointerManagerGlobalData {
     fn bind(
-        _state: &mut D,
+        &self,
+        _state: &mut State,
         _handle: &DisplayHandle,
         _client: &Client,
         manager: New<ZwlrVirtualPointerManagerV1>,
-        _manager_state: &VirtualPointerManagerGlobalData,
-        data_init: &mut DataInit<'_, D>,
+        data_init: &mut DataInit<'_, State>,
     ) {
         data_init.init(manager, ());
     }
 
-    fn can_view(client: Client, global_data: &VirtualPointerManagerGlobalData) -> bool {
-        (global_data.filter)(&client)
+    fn can_view(&self, client: &wayland_server::Client) -> bool {
+        (self.filter)(&client)
     }
 }
 
-impl<D> Dispatch<ZwlrVirtualPointerManagerV1, (), D> for VirtualPointerManagerState
-where
-    D: Dispatch<ZwlrVirtualPointerManagerV1, ()>,
-    D: Dispatch<ZwlrVirtualPointerV1, VirtualPointerUserData>,
-    D: VirtualPointerHandler,
-    D: 'static,
-{
+impl Dispatch2<ZwlrVirtualPointerManagerV1, State> for () {
     fn request(
-        state: &mut D,
+        &self,
+        state: &mut State,
         _client: &Client,
         _resource: &ZwlrVirtualPointerManagerV1,
         request: <ZwlrVirtualPointerManagerV1 as Resource>::Request,
-        _data: &(),
         _dhandle: &DisplayHandle,
-        data_init: &mut DataInit<'_, D>,
+        data_init: &mut DataInit<'_, State>,
     ) {
         let (id, seat, output) = match request {
             zwlr_virtual_pointer_manager_v1::Request::CreateVirtualPointer { seat, id } => {
@@ -377,20 +366,15 @@ where
     }
 }
 
-impl<D> Dispatch<ZwlrVirtualPointerV1, VirtualPointerUserData, D> for VirtualPointerManagerState
-where
-    D: Dispatch<ZwlrVirtualPointerV1, VirtualPointerUserData>,
-    D: VirtualPointerHandler,
-    D: 'static,
-{
+impl Dispatch2<ZwlrVirtualPointerV1, State> for VirtualPointerUserData {
     fn request(
-        handler: &mut D,
+        &self,
+        handler: &mut State,
         _client: &Client,
         resource: &ZwlrVirtualPointerV1,
         request: <ZwlrVirtualPointerV1 as Resource>::Request,
-        _data: &VirtualPointerUserData,
         _dhandle: &DisplayHandle,
-        _data_init: &mut DataInit<'_, D>,
+        _data_init: &mut DataInit<'_, State>,
     ) {
         let pointer = VirtualPointer {
             pointer: resource.clone(),
@@ -528,10 +512,10 @@ where
     }
 
     fn destroyed(
-        handler: &mut D,
+        &self,
+        handler: &mut State,
         _client: wayland_backend::server::ClientId,
         resource: &ZwlrVirtualPointerV1,
-        _data: &VirtualPointerUserData,
     ) {
         let pointer = VirtualPointer {
             pointer: resource.clone(),
@@ -543,21 +527,4 @@ where
             .virtual_pointers
             .remove(resource);
     }
-}
-
-#[macro_export]
-macro_rules! delegate_virtual_pointer {
-    ($(@<$( $lt:tt $( : $clt:tt $(+ $dlt:tt )* )? ),+>)? $ty: ty) => {
-        smithay::reexports::wayland_server::delegate_global_dispatch!($(@< $( $lt $( : $clt $(+ $dlt )* )? ),+ >)? $ty: [
-            smithay::reexports::wayland_protocols_wlr::virtual_pointer::v1::server::zwlr_virtual_pointer_manager_v1::ZwlrVirtualPointerManagerV1: $crate::protocols::virtual_pointer::VirtualPointerManagerGlobalData
-            ] => $crate::protocols::virtual_pointer::VirtualPointerManagerState);
-
-        smithay::reexports::wayland_server::delegate_dispatch!($(@< $( $lt $( : $clt $(+ $dlt )* )? ),+ >)? $ty: [
-            smithay::reexports::wayland_protocols_wlr::virtual_pointer::v1::server::zwlr_virtual_pointer_manager_v1::ZwlrVirtualPointerManagerV1: ()
-        ] => $crate::protocols::virtual_pointer::VirtualPointerManagerState);
-
-        smithay::reexports::wayland_server::delegate_dispatch!($(@< $( $lt $( : $clt $(+ $dlt )* )? ),+ >)? $ty: [
-            smithay::reexports::wayland_protocols_wlr::virtual_pointer::v1::server::zwlr_virtual_pointer_v1::ZwlrVirtualPointerV1:  $crate::protocols::virtual_pointer::VirtualPointerUserData
-        ] => $crate::protocols::virtual_pointer::VirtualPointerManagerState);
-    };
 }

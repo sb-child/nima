@@ -8,11 +8,14 @@ use smithay::reexports::wayland_server::backend::ClientId;
 use smithay::reexports::wayland_server::{
     Client, DataInit, Dispatch, DisplayHandle, GlobalDispatch, New, Resource,
 };
+use smithay::wayland::{Dispatch2, GlobalDispatch2};
 use wayland_protocols_wlr::gamma_control::v1::server::{
     zwlr_gamma_control_manager_v1, zwlr_gamma_control_v1,
 };
 use zwlr_gamma_control_manager_v1::ZwlrGammaControlManagerV1;
 use zwlr_gamma_control_v1::ZwlrGammaControlV1;
+
+use crate::niri::State;
 
 const VERSION: u32 = 1;
 
@@ -62,46 +65,32 @@ impl GammaControlManagerState {
     }
 }
 
-impl<D> GlobalDispatch<ZwlrGammaControlManagerV1, GammaControlManagerGlobalData, D>
-    for GammaControlManagerState
-where
-    D: GlobalDispatch<ZwlrGammaControlManagerV1, GammaControlManagerGlobalData>,
-    D: Dispatch<ZwlrGammaControlManagerV1, ()>,
-    D: Dispatch<ZwlrGammaControlV1, GammaControlState>,
-    D: GammaControlHandler,
-    D: 'static,
-{
+impl GlobalDispatch2<ZwlrGammaControlManagerV1, State> for GammaControlManagerGlobalData {
     fn bind(
-        _state: &mut D,
+        &self,
+        _state: &mut State,
         _handle: &DisplayHandle,
         _client: &Client,
         manager: New<ZwlrGammaControlManagerV1>,
-        _manager_state: &GammaControlManagerGlobalData,
-        data_init: &mut DataInit<'_, D>,
+        data_init: &mut DataInit<'_, State>,
     ) {
         data_init.init(manager, ());
     }
 
-    fn can_view(client: Client, global_data: &GammaControlManagerGlobalData) -> bool {
-        (global_data.filter)(&client)
+    fn can_view(&self, client: &wayland_server::Client) -> bool {
+        (self.filter)(&client)
     }
 }
 
-impl<D> Dispatch<ZwlrGammaControlManagerV1, (), D> for GammaControlManagerState
-where
-    D: Dispatch<ZwlrGammaControlManagerV1, ()>,
-    D: Dispatch<ZwlrGammaControlV1, GammaControlState>,
-    D: GammaControlHandler,
-    D: 'static,
-{
+impl Dispatch2<ZwlrGammaControlManagerV1, State> for () {
     fn request(
-        state: &mut D,
+        &self,
+        state: &mut State,
         _client: &Client,
         _resource: &ZwlrGammaControlManagerV1,
         request: <ZwlrGammaControlManagerV1 as Resource>::Request,
-        _data: &(),
         _dhandle: &DisplayHandle,
-        data_init: &mut DataInit<'_, D>,
+        data_init: &mut DataInit<'_, State>,
     ) {
         match request {
             zwlr_gamma_control_manager_v1::Request::GetGammaControl { id, output } => {
@@ -136,20 +125,15 @@ where
     }
 }
 
-impl<D> Dispatch<ZwlrGammaControlV1, GammaControlState, D> for GammaControlManagerState
-where
-    D: Dispatch<ZwlrGammaControlV1, GammaControlState>,
-    D: GammaControlHandler,
-    D: 'static,
-{
+impl Dispatch2<ZwlrGammaControlV1, State> for GammaControlState {
     fn request(
-        state: &mut D,
+        &self,
+        state: &mut State,
         _client: &Client,
         resource: &ZwlrGammaControlV1,
         request: <ZwlrGammaControlV1 as Resource>::Request,
-        data: &GammaControlState,
         _dhandle: &DisplayHandle,
-        _data_init: &mut DataInit<'_, D>,
+        _data_init: &mut DataInit<'_, State>,
     ) {
         match request {
             zwlr_gamma_control_v1::Request::SetGamma { fd } => {
@@ -162,7 +146,7 @@ where
                 trace!("setting gamma for output {}", output.name());
 
                 // Start with a u16 slice so it's aligned correctly.
-                let mut gamma = vec![0u16; data.gamma_size as usize * 3];
+                let mut gamma = vec![0u16; self.gamma_size as usize * 3];
                 let buf = bytemuck::cast_slice_mut(&mut gamma);
                 let mut file = File::from(fd);
                 {
@@ -210,12 +194,7 @@ where
         }
     }
 
-    fn destroyed(
-        state: &mut D,
-        _client: ClientId,
-        resource: &ZwlrGammaControlV1,
-        _data: &GammaControlState,
-    ) {
+    fn destroyed(&self, state: &mut State, _client: ClientId, resource: &ZwlrGammaControlV1) {
         let gamma_controls = &mut state.gamma_control_manager_state().gamma_controls;
         let Some((output, _)) = gamma_controls.iter().find(|(_, x)| *x == resource) else {
             return;
@@ -225,21 +204,4 @@ where
 
         let _ = state.set_gamma(&output, None);
     }
-}
-
-#[macro_export]
-macro_rules! delegate_gamma_control {
-    ($(@<$( $lt:tt $( : $clt:tt $(+ $dlt:tt )* )? ),+>)? $ty: ty) => {
-        smithay::reexports::wayland_server::delegate_global_dispatch!($(@< $( $lt $( : $clt $(+ $dlt )* )? ),+ >)? $ty: [
-            smithay::reexports::wayland_protocols_wlr::gamma_control::v1::server::zwlr_gamma_control_manager_v1::ZwlrGammaControlManagerV1: $crate::protocols::gamma_control::GammaControlManagerGlobalData
-        ] => $crate::protocols::gamma_control::GammaControlManagerState);
-
-        smithay::reexports::wayland_server::delegate_dispatch!($(@< $( $lt $( : $clt $(+ $dlt )* )? ),+ >)? $ty: [
-            smithay::reexports::wayland_protocols_wlr::gamma_control::v1::server::zwlr_gamma_control_manager_v1::ZwlrGammaControlManagerV1: ()
-        ] => $crate::protocols::gamma_control::GammaControlManagerState);
-
-        smithay::reexports::wayland_server::delegate_dispatch!($(@< $( $lt $( : $clt $(+ $dlt )* )? ),+ >)? $ty: [
-            smithay::reexports::wayland_protocols_wlr::gamma_control::v1::server::zwlr_gamma_control_v1::ZwlrGammaControlV1:  $crate::protocols::gamma_control::GammaControlState
-        ] => $crate::protocols::gamma_control::GammaControlManagerState);
-    };
 }

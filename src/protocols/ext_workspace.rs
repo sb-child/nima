@@ -26,6 +26,7 @@ use smithay::reexports::wayland_server::protocol::wl_output::WlOutput;
 use smithay::reexports::wayland_server::{
     Client, DataInit, Dispatch, DisplayHandle, GlobalDispatch, New, Resource,
 };
+use smithay::wayland::{Dispatch2, GlobalDispatch2};
 use wayland_backend::server::ClientId;
 
 use crate::layout::monitor::Monitor;
@@ -493,29 +494,21 @@ impl ExtWorkspaceManagerState {
     }
 }
 
-impl<D> GlobalDispatch<ExtWorkspaceManagerV1, ExtWorkspaceGlobalData, D>
-    for ExtWorkspaceManagerState
-where
-    D: GlobalDispatch<ExtWorkspaceManagerV1, ExtWorkspaceGlobalData>,
-    D: Dispatch<ExtWorkspaceManagerV1, ()>,
-    D: Dispatch<ExtWorkspaceHandleV1, ExtWorkspaceManagerV1>,
-    D: ExtWorkspaceHandler,
-{
+impl GlobalDispatch2<ExtWorkspaceManagerV1, State> for ExtWorkspaceGlobalData {
     fn bind(
-        state: &mut D,
+        &self,
+        state: &mut State,
         handle: &DisplayHandle,
         client: &Client,
         resource: New<ExtWorkspaceManagerV1>,
-        _global_data: &ExtWorkspaceGlobalData,
-        data_init: &mut DataInit<'_, D>,
+        data_init: &mut DataInit<'_, State>,
     ) {
         let manager = data_init.init(resource, ());
-
-        let state = state.ext_workspace_manager_state();
+        let protocol_state = state.ext_workspace_manager_state();
 
         // Send existing workspaces to the new client.
         let mut new_workspaces: HashMap<_, Vec<_>> = HashMap::new();
-        for data in state.workspaces.values_mut() {
+        for data in protocol_state.workspaces.values_mut() {
             let output = data.output.clone();
             let workspace = data.add_instance::<State>(handle, client, &manager);
 
@@ -525,7 +518,7 @@ where
         }
 
         // Create workspace groups for all outputs.
-        for (output, group_data) in &mut state.workspace_groups {
+        for (output, group_data) in &mut protocol_state.workspace_groups {
             let group = group_data.add_instance::<State>(handle, client, &manager, output);
 
             for workspace in new_workspaces.get(output).into_iter().flatten() {
@@ -534,27 +527,23 @@ where
         }
 
         manager.done();
-        state.instances.insert(manager, Vec::new());
+        protocol_state.instances.insert(manager, Vec::new());
     }
 
-    fn can_view(client: Client, global_data: &ExtWorkspaceGlobalData) -> bool {
-        (global_data.filter)(&client)
+    fn can_view(&self, client: &wayland_server::Client) -> bool {
+        (self.filter)(&client)
     }
 }
 
-impl<D> Dispatch<ExtWorkspaceManagerV1, (), D> for ExtWorkspaceManagerState
-where
-    D: Dispatch<ExtWorkspaceManagerV1, ()>,
-    D: ExtWorkspaceHandler,
-{
+impl Dispatch2<ExtWorkspaceManagerV1, State> for () {
     fn request(
-        state: &mut D,
+        &self,
+        state: &mut State,
         _client: &Client,
         resource: &ExtWorkspaceManagerV1,
         request: <ExtWorkspaceManagerV1 as Resource>::Request,
-        _data: &(),
         _dhandle: &DisplayHandle,
-        _data_init: &mut DataInit<'_, D>,
+        _data_init: &mut DataInit<'_, State>,
     ) {
         match request {
             ext_workspace_manager_v1::Request::Commit => {
@@ -595,25 +584,21 @@ where
         }
     }
 
-    fn destroyed(state: &mut D, _client: ClientId, resource: &ExtWorkspaceManagerV1, _data: &()) {
-        let state = state.ext_workspace_manager_state();
-        state.instances.retain(|x, _| x != resource);
+    fn destroyed(&self, state: &mut State, _client: ClientId, resource: &ExtWorkspaceManagerV1) {
+        let protocol_state = state.ext_workspace_manager_state();
+        protocol_state.instances.retain(|x, _| x != resource);
     }
 }
 
-impl<D> Dispatch<ExtWorkspaceHandleV1, ExtWorkspaceManagerV1, D> for ExtWorkspaceManagerState
-where
-    D: Dispatch<ExtWorkspaceHandleV1, ExtWorkspaceManagerV1>,
-    D: ExtWorkspaceHandler,
-{
+impl Dispatch2<ExtWorkspaceHandleV1, State> for ExtWorkspaceManagerV1 {
     fn request(
-        state: &mut D,
+        &self,
+        state: &mut State,
         _client: &Client,
         resource: &ExtWorkspaceHandleV1,
         request: <ExtWorkspaceHandleV1 as Resource>::Request,
-        data: &ExtWorkspaceManagerV1,
         _dhandle: &DisplayHandle,
-        _data_init: &mut DataInit<'_, D>,
+        _data_init: &mut DataInit<'_, State>,
     ) {
         let protocol_state = state.ext_workspace_manager_state();
 
@@ -628,7 +613,7 @@ where
 
         match request {
             ext_workspace_handle_v1::Request::Activate => {
-                let actions = protocol_state.instances.get_mut(data).unwrap();
+                let actions = protocol_state.instances.get_mut(self).unwrap();
                 actions.push(Action::Activate(workspace));
             }
             ext_workspace_handle_v1::Request::Deactivate => (),
@@ -639,7 +624,7 @@ where
                     .find(|(_, data)| data.instances.contains(&workspace_group))
                     .map(|(output, _)| output.clone())
                 {
-                    let actions = protocol_state.instances.get_mut(data).unwrap();
+                    let actions = protocol_state.instances.get_mut(self).unwrap();
                     actions.push(Action::Assign(workspace, output.downgrade()));
                 }
             }
@@ -649,32 +634,23 @@ where
         }
     }
 
-    fn destroyed(
-        state: &mut D,
-        _client: ClientId,
-        resource: &ExtWorkspaceHandleV1,
-        _data: &ExtWorkspaceManagerV1,
-    ) {
-        let state = state.ext_workspace_manager_state();
-        for data in state.workspaces.values_mut() {
+    fn destroyed(&self, state: &mut State, _client: ClientId, resource: &ExtWorkspaceHandleV1) {
+        let protocol_state = state.ext_workspace_manager_state();
+        for data in protocol_state.workspaces.values_mut() {
             data.instances.retain(|instance| instance != resource);
         }
     }
 }
 
-impl<D> Dispatch<ExtWorkspaceGroupHandleV1, ExtWorkspaceManagerV1, D> for ExtWorkspaceManagerState
-where
-    D: Dispatch<ExtWorkspaceGroupHandleV1, ExtWorkspaceManagerV1>,
-    D: ExtWorkspaceHandler,
-{
+impl Dispatch2<ExtWorkspaceGroupHandleV1, State> for ExtWorkspaceManagerV1 {
     fn request(
-        _state: &mut D,
+        &self,
+        _state: &mut State,
         _client: &Client,
         _resource: &ExtWorkspaceGroupHandleV1,
         request: <ExtWorkspaceGroupHandleV1 as Resource>::Request,
-        _data: &ExtWorkspaceManagerV1,
         _dhandle: &DisplayHandle,
-        _data_init: &mut DataInit<'_, D>,
+        _data_init: &mut DataInit<'_, State>,
     ) {
         match request {
             ext_workspace_group_handle_v1::Request::CreateWorkspace { .. } => (),
@@ -684,32 +660,14 @@ where
     }
 
     fn destroyed(
-        state: &mut D,
+        &self,
+        state: &mut State,
         _client: ClientId,
         resource: &ExtWorkspaceGroupHandleV1,
-        _data: &ExtWorkspaceManagerV1,
     ) {
-        let state = state.ext_workspace_manager_state();
-        for data in state.workspace_groups.values_mut() {
+        let protocol_state = state.ext_workspace_manager_state();
+        for data in protocol_state.workspace_groups.values_mut() {
             data.instances.retain(|instance| instance != resource);
         }
     }
-}
-
-#[macro_export]
-macro_rules! delegate_ext_workspace {
-    ($(@<$( $lt:tt $( : $clt:tt $(+ $dlt:tt )* )? ),+>)? $ty: ty) => {
-        smithay::reexports::wayland_server::delegate_global_dispatch!($(@< $( $lt $( : $clt $(+ $dlt )* )? ),+ >)? $ty: [
-            smithay::reexports::wayland_protocols::ext::workspace::v1::server::ext_workspace_manager_v1::ExtWorkspaceManagerV1: $crate::protocols::ext_workspace::ExtWorkspaceGlobalData
-        ] => $crate::protocols::ext_workspace::ExtWorkspaceManagerState);
-        smithay::reexports::wayland_server::delegate_dispatch!($(@< $( $lt $( : $clt $(+ $dlt )* )? ),+ >)? $ty: [
-            smithay::reexports::wayland_protocols::ext::workspace::v1::server::ext_workspace_manager_v1::ExtWorkspaceManagerV1: ()
-        ] => $crate::protocols::ext_workspace::ExtWorkspaceManagerState);
-        smithay::reexports::wayland_server::delegate_dispatch!($(@< $( $lt $( : $clt $(+ $dlt )* )? ),+ >)? $ty: [
-            smithay::reexports::wayland_protocols::ext::workspace::v1::server::ext_workspace_handle_v1::ExtWorkspaceHandleV1: smithay::reexports::wayland_protocols::ext::workspace::v1::server::ext_workspace_manager_v1::ExtWorkspaceManagerV1
-        ] => $crate::protocols::ext_workspace::ExtWorkspaceManagerState);
-        smithay::reexports::wayland_server::delegate_dispatch!($(@< $( $lt $( : $clt $(+ $dlt )* )? ),+ >)? $ty: [
-            smithay::reexports::wayland_protocols::ext::workspace::v1::server::ext_workspace_group_handle_v1::ExtWorkspaceGroupHandleV1: smithay::reexports::wayland_protocols::ext::workspace::v1::server::ext_workspace_manager_v1::ExtWorkspaceManagerV1
-        ] => $crate::protocols::ext_workspace::ExtWorkspaceManagerState);
-    };
 }

@@ -19,11 +19,12 @@ use smithay::reexports::wayland_server::{
     Client, DataInit, Dispatch, DisplayHandle, GlobalDispatch, New, Resource,
 };
 use smithay::utils::{Physical, Point, Rectangle, Size, Transform};
-use smithay::wayland::{dmabuf, shm};
+use smithay::wayland::{dmabuf, shm, Dispatch2, GlobalDispatch2};
 use wayland_backend::server::Credentials;
 use zwlr_screencopy_frame_v1::{Flags, ZwlrScreencopyFrameV1};
 use zwlr_screencopy_manager_v1::ZwlrScreencopyManagerV1;
 
+use crate::niri::State;
 use crate::utils::{get_credentials_for_client, get_monotonic_time, CastSessionId, CastStreamId};
 
 const VERSION: u32 = 3;
@@ -278,52 +279,37 @@ impl ScreencopyManagerState {
     }
 }
 
-impl<D> GlobalDispatch<ZwlrScreencopyManagerV1, ScreencopyManagerGlobalData, D>
-    for ScreencopyManagerState
-where
-    D: GlobalDispatch<ZwlrScreencopyManagerV1, ScreencopyManagerGlobalData>,
-    D: Dispatch<ZwlrScreencopyManagerV1, ()>,
-    D: Dispatch<ZwlrScreencopyFrameV1, ScreencopyFrameState>,
-    D: ScreencopyHandler,
-    D: 'static,
-{
+impl GlobalDispatch2<ZwlrScreencopyManagerV1, State> for ScreencopyManagerGlobalData {
     fn bind(
-        state: &mut D,
+        &self,
+        state: &mut State,
         dh: &DisplayHandle,
         client: &Client,
         manager: New<ZwlrScreencopyManagerV1>,
-        _manager_state: &ScreencopyManagerGlobalData,
-        data_init: &mut DataInit<'_, D>,
+        data_init: &mut DataInit<'_, State>,
     ) {
         let manager = data_init.init(manager, ());
 
-        let state = state.screencopy_state();
+        let protocol_state = state.screencopy_state();
         let credentials = get_credentials_for_client(dh, client);
         let queue = ScreencopyQueue::new(credentials);
-        state.queues.insert(manager.clone(), queue);
+        protocol_state.queues.insert(manager.clone(), queue);
     }
 
-    fn can_view(client: Client, global_data: &ScreencopyManagerGlobalData) -> bool {
-        (global_data.filter)(&client)
+    fn can_view(&self, client: &wayland_server::Client) -> bool {
+        (self.filter)(&client)
     }
 }
 
-impl<D> Dispatch<ZwlrScreencopyManagerV1, (), D> for ScreencopyManagerState
-where
-    D: GlobalDispatch<ZwlrScreencopyManagerV1, ScreencopyManagerGlobalData>,
-    D: Dispatch<ZwlrScreencopyManagerV1, ()>,
-    D: Dispatch<ZwlrScreencopyFrameV1, ScreencopyFrameState>,
-    D: ScreencopyHandler,
-    D: 'static,
-{
+impl Dispatch2<ZwlrScreencopyManagerV1, State> for () {
     fn request(
-        state: &mut D,
+        &self,
+        state: &mut State,
         _client: &Client,
         manager: &ZwlrScreencopyManagerV1,
         request: zwlr_screencopy_manager_v1::Request,
-        _data: &(),
         _display: &DisplayHandle,
-        data_init: &mut DataInit<'_, D>,
+        data_init: &mut DataInit<'_, State>,
     ) {
         let (frame, overlay_cursor, buffer_size, region_loc, output) = match request {
             zwlr_screencopy_manager_v1::Request::CaptureOutput {
@@ -437,20 +423,20 @@ where
             frame.buffer_done();
         }
 
-        let state = state.screencopy_state();
-        let queue = state.queues.get_mut(manager).unwrap();
+        let protocol_state = state.screencopy_state();
+        let queue = protocol_state.queues.get_mut(manager).unwrap();
         queue.pending_frames.insert(frame);
     }
 
     fn destroyed(
-        state: &mut D,
+        &self,
+        state: &mut State,
         _client: wayland_backend::server::ClientId,
         manager: &ZwlrScreencopyManagerV1,
-        _data: &(),
     ) {
-        let state = state.screencopy_state();
+        let protocol_state = state.screencopy_state();
 
-        let Some(queue) = state.queues.get_mut(manager) else {
+        let Some(queue) = protocol_state.queues.get_mut(manager) else {
             // This happened once. I'm really not sure how exactly though.
             //
             // I've dug into wayland-server and wayland-backend, and apparently there are a bunch
@@ -467,7 +453,7 @@ where
 
         // Clean up the queue if this was the last object.
         if queue.is_empty() {
-            state.queues.remove(manager);
+            protocol_state.queues.remove(manager);
         }
     }
 }
@@ -481,24 +467,6 @@ pub trait ScreencopyHandler {
     fn frame(&mut self, manager: &ZwlrScreencopyManagerV1, screencopy: Screencopy);
 
     fn screencopy_state(&mut self) -> &mut ScreencopyManagerState;
-}
-
-#[allow(missing_docs)]
-#[macro_export]
-macro_rules! delegate_screencopy {
-    ($(@<$( $lt:tt $( : $clt:tt $(+ $dlt:tt )* )? ),+>)? $ty: ty) => {
-        smithay::reexports::wayland_server::delegate_global_dispatch!($(@< $( $lt $( : $clt $(+ $dlt )* )? ),+ >)? $ty: [
-            smithay::reexports::wayland_protocols_wlr::screencopy::v1::server::zwlr_screencopy_manager_v1::ZwlrScreencopyManagerV1: $crate::protocols::screencopy::ScreencopyManagerGlobalData
-        ] => $crate::protocols::screencopy::ScreencopyManagerState);
-
-        smithay::reexports::wayland_server::delegate_dispatch!($(@< $( $lt $( : $clt $(+ $dlt )* )? ),+ >)? $ty: [
-            smithay::reexports::wayland_protocols_wlr::screencopy::v1::server::zwlr_screencopy_manager_v1::ZwlrScreencopyManagerV1: ()
-        ] => $crate::protocols::screencopy::ScreencopyManagerState);
-
-        smithay::reexports::wayland_server::delegate_dispatch!($(@< $( $lt $( : $clt $(+ $dlt )* )? ),+ >)? $ty: [
-            smithay::reexports::wayland_protocols_wlr::screencopy::v1::server::zwlr_screencopy_frame_v1::ZwlrScreencopyFrameV1: $crate::protocols::screencopy::ScreencopyFrameState
-        ] => $crate::protocols::screencopy::ScreencopyManagerState);
-    };
 }
 
 #[derive(Clone)]
@@ -518,20 +486,15 @@ pub enum ScreencopyFrameState {
     },
 }
 
-impl<D> Dispatch<ZwlrScreencopyFrameV1, ScreencopyFrameState, D> for ScreencopyManagerState
-where
-    D: Dispatch<ZwlrScreencopyFrameV1, ScreencopyFrameState>,
-    D: ScreencopyHandler,
-    D: 'static,
-{
+impl Dispatch2<ZwlrScreencopyFrameV1, State> for ScreencopyFrameState {
     fn request(
-        state: &mut D,
+        &self,
+        state: &mut State,
         _client: &Client,
         frame: &ZwlrScreencopyFrameV1,
         request: zwlr_screencopy_frame_v1::Request,
-        data: &ScreencopyFrameState,
         _display: &DisplayHandle,
-        _data_init: &mut DataInit<'_, D>,
+        _data_init: &mut DataInit<'_, State>,
     ) {
         if matches!(request, zwlr_screencopy_frame_v1::Request::Destroy) {
             return;
@@ -541,7 +504,7 @@ where
             manager,
             info,
             copied,
-        } = data
+        } = self
         else {
             return;
         };
@@ -608,21 +571,21 @@ where
 
         // By this point the frame should've been either copied or failed or pushed to the queue,
         // so remove it from pending frames.
-        let state = state.screencopy_state();
-        let queue = state.queues.get_mut(manager).unwrap();
+        let protocol_state = state.screencopy_state();
+        let queue = protocol_state.queues.get_mut(manager).unwrap();
         queue.pending_frames.remove(frame);
         if queue.is_empty() && !manager.is_alive() {
-            state.queues.remove(manager);
+            protocol_state.queues.remove(manager);
         }
     }
 
     fn destroyed(
-        state: &mut D,
+        &self,
+        state: &mut State,
         _client: wayland_backend::server::ClientId,
         frame: &ZwlrScreencopyFrameV1,
-        data: &ScreencopyFrameState,
     ) {
-        let ScreencopyFrameState::Pending { manager, .. } = data else {
+        let ScreencopyFrameState::Pending { manager, .. } = self else {
             return;
         };
 

@@ -14,6 +14,7 @@ use smithay::reexports::wayland_server::protocol::wl_output::Transform as WlTran
 use smithay::reexports::wayland_server::{
     Client, DataInit, Dispatch, DisplayHandle, GlobalDispatch, New, Resource, WEnum,
 };
+use smithay::wayland::{Dispatch2, GlobalDispatch2};
 use zwlr_output_configuration_head_v1::ZwlrOutputConfigurationHeadV1;
 use zwlr_output_configuration_v1::ZwlrOutputConfigurationV1;
 use zwlr_output_head_v1::{AdaptiveSyncState, ZwlrOutputHeadV1};
@@ -269,25 +270,14 @@ impl OutputManagementManagerState {
     }
 }
 
-impl<D> GlobalDispatch<ZwlrOutputManagerV1, OutputManagementManagerGlobalData, D>
-    for OutputManagementManagerState
-where
-    D: GlobalDispatch<ZwlrOutputManagerV1, OutputManagementManagerGlobalData>,
-    D: Dispatch<ZwlrOutputManagerV1, ()>,
-    D: Dispatch<ZwlrOutputHeadV1, OutputId>,
-    D: Dispatch<ZwlrOutputConfigurationV1, u32>,
-    D: Dispatch<ZwlrOutputConfigurationHeadV1, OutputConfigurationHeadState>,
-    D: Dispatch<ZwlrOutputModeV1, ()>,
-    D: OutputManagementHandler,
-    D: 'static,
-{
+impl GlobalDispatch2<ZwlrOutputManagerV1, State> for OutputManagementManagerGlobalData {
     fn bind(
-        state: &mut D,
+        &self,
+        state: &mut State,
         display: &DisplayHandle,
         client: &Client,
         manager: New<ZwlrOutputManagerV1>,
-        _manager_state: &OutputManagementManagerGlobalData,
-        data_init: &mut DataInit<'_, D>,
+        data_init: &mut DataInit<'_, State>,
     ) {
         let manager = data_init.init(manager, ());
         let g_state = state.output_management_state();
@@ -297,43 +287,33 @@ where
             manager: manager.clone(),
         };
         for (output, conf) in &g_state.current_state {
-            send_new_head::<D>(display, client, &mut client_data, *output, conf);
+            send_new_head::<State>(display, client, &mut client_data, *output, conf);
         }
         g_state.clients.insert(client.id(), client_data);
         manager.done(g_state.serial);
     }
 
-    fn can_view(client: Client, global_data: &OutputManagementManagerGlobalData) -> bool {
-        (global_data.filter)(&client)
+    fn can_view(&self, client: &wayland_server::Client) -> bool {
+        (self.filter)(&client)
     }
 }
 
-impl<D> Dispatch<ZwlrOutputManagerV1, (), D> for OutputManagementManagerState
-where
-    D: GlobalDispatch<ZwlrOutputManagerV1, OutputManagementManagerGlobalData>,
-    D: Dispatch<ZwlrOutputManagerV1, ()>,
-    D: Dispatch<ZwlrOutputHeadV1, OutputId>,
-    D: Dispatch<ZwlrOutputConfigurationV1, u32>,
-    D: Dispatch<ZwlrOutputConfigurationHeadV1, OutputConfigurationHeadState>,
-    D: Dispatch<ZwlrOutputModeV1, ()>,
-    D: OutputManagementHandler,
-    D: 'static,
-{
+impl Dispatch2<ZwlrOutputManagerV1, State> for () {
     fn request(
-        state: &mut D,
+        &self,
+        state: &mut State,
         client: &Client,
         _manager: &ZwlrOutputManagerV1,
         request: zwlr_output_manager_v1::Request,
-        _data: &(),
         _display: &DisplayHandle,
-        data_init: &mut DataInit<'_, D>,
+        data_init: &mut DataInit<'_, State>,
     ) {
         match request {
             zwlr_output_manager_v1::Request::CreateConfiguration { id, serial } => {
-                let g_state = state.output_management_state();
+                let protocol_state = state.output_management_state();
                 let conf = data_init.init(id, serial);
-                if let Some(client_data) = g_state.clients.get_mut(&client.id()) {
-                    if serial != g_state.serial {
+                if let Some(client_data) = protocol_state.clients.get_mut(&client.id()) {
+                    if serial != protocol_state.serial {
                         conf.cancelled();
                     }
                     let state = OutputConfigurationState::Ongoing(HashMap::new());
@@ -350,38 +330,28 @@ where
             _ => unreachable!(),
         }
     }
-    fn destroyed(state: &mut D, client: ClientId, _resource: &ZwlrOutputManagerV1, _data: &()) {
+    fn destroyed(&self, state: &mut State, client: ClientId, _resource: &ZwlrOutputManagerV1) {
         state.output_management_state().clients.remove(&client);
     }
 }
 
-impl<D> Dispatch<ZwlrOutputConfigurationV1, u32, D> for OutputManagementManagerState
-where
-    D: GlobalDispatch<ZwlrOutputManagerV1, OutputManagementManagerGlobalData>,
-    D: Dispatch<ZwlrOutputManagerV1, ()>,
-    D: Dispatch<ZwlrOutputHeadV1, OutputId>,
-    D: Dispatch<ZwlrOutputConfigurationV1, u32>,
-    D: Dispatch<ZwlrOutputConfigurationHeadV1, OutputConfigurationHeadState>,
-    D: Dispatch<ZwlrOutputModeV1, ()>,
-    D: OutputManagementHandler,
-    D: 'static,
-{
+impl Dispatch2<ZwlrOutputConfigurationV1, State> for u32 {
     fn request(
-        state: &mut D,
+        &self,
+        state: &mut State,
         client: &Client,
         conf: &ZwlrOutputConfigurationV1,
         request: zwlr_output_configuration_v1::Request,
-        serial: &u32,
         _display: &DisplayHandle,
-        data_init: &mut DataInit<'_, D>,
+        data_init: &mut DataInit<'_, State>,
     ) {
-        let g_state = state.output_management_state();
-        let outdated = *serial != g_state.serial;
+        let protocol_state = state.output_management_state();
+        let outdated = *self != protocol_state.serial;
         if outdated {
             debug!("OutputConfiguration: request from an outdated configuration");
         }
 
-        let new_config = g_state
+        let new_config = protocol_state
             .clients
             .get_mut(&client.id())
             .and_then(|data| data.confs.get_mut(conf));
@@ -415,7 +385,7 @@ where
                     return;
                 };
 
-                let Some(current_config) = g_state.current_state.get(output) else {
+                let Some(current_config) = protocol_state.current_state.get(output) else {
                     error!("EnableHead: output missing from current config");
                     let _fail = data_init.init(id, OutputConfigurationHeadState::Cancelled);
                     return;
@@ -432,7 +402,7 @@ where
                     }
                     Entry::Vacant(entry) => {
                         let name = OutputName::from_ipc_output(current_config);
-                        let mut config = g_state
+                        let mut config = protocol_state
                             .current_config
                             .find(&name)
                             .cloned()
@@ -468,7 +438,7 @@ where
                     return;
                 };
 
-                let Some(current_config) = g_state.current_state.get(output) else {
+                let Some(current_config) = protocol_state.current_state.get(output) else {
                     error!("EnableHead: output missing from current config");
                     return;
                 };
@@ -482,7 +452,7 @@ where
                     }
                     Entry::Vacant(entry) => {
                         let name = OutputName::from_ipc_output(current_config);
-                        let mut config = g_state
+                        let mut config = protocol_state
                             .current_config
                             .find(&name)
                             .cloned()
@@ -555,7 +525,7 @@ where
                 conf.succeeded()
             }
             zwlr_output_configuration_v1::Request::Destroy => {
-                g_state
+                protocol_state
                     .clients
                     .get_mut(&client.id())
                     .map(|d| d.confs.remove(conf));
@@ -565,33 +535,22 @@ where
     }
 }
 
-impl<D> Dispatch<ZwlrOutputConfigurationHeadV1, OutputConfigurationHeadState, D>
-    for OutputManagementManagerState
-where
-    D: GlobalDispatch<ZwlrOutputManagerV1, OutputManagementManagerGlobalData>,
-    D: Dispatch<ZwlrOutputManagerV1, ()>,
-    D: Dispatch<ZwlrOutputHeadV1, OutputId>,
-    D: Dispatch<ZwlrOutputConfigurationV1, u32>,
-    D: Dispatch<ZwlrOutputConfigurationHeadV1, OutputConfigurationHeadState>,
-    D: Dispatch<ZwlrOutputModeV1, ()>,
-    D: OutputManagementHandler,
-    D: 'static,
-{
+impl Dispatch2<ZwlrOutputConfigurationHeadV1, State> for OutputConfigurationHeadState {
     fn request(
-        state: &mut D,
+        &self,
+        state: &mut State,
         client: &Client,
         conf_head: &ZwlrOutputConfigurationHeadV1,
         request: zwlr_output_configuration_head_v1::Request,
-        data: &OutputConfigurationHeadState,
         _display: &DisplayHandle,
-        _data_init: &mut DataInit<'_, D>,
+        _data_init: &mut DataInit<'_, State>,
     ) {
-        let g_state = state.output_management_state();
-        let Some(client_data) = g_state.clients.get_mut(&client.id()) else {
+        let protocol_state = state.output_management_state();
+        let Some(client_data) = protocol_state.clients.get_mut(&client.id()) else {
             error!("ConfigurationHead: missing client data");
             return;
         };
-        let OutputConfigurationHeadState::Ok(output_id, conf) = data else {
+        let OutputConfigurationHeadState::Ok(output_id, conf) = self else {
             warn!("ConfigurationHead: request sent to a cancelled head");
             return;
         };
@@ -599,7 +558,7 @@ where
             error!("ConfigurationHead: missing serial");
             return;
         };
-        if *serial != g_state.serial {
+        if *serial != protocol_state.serial {
             warn!("ConfigurationHead: request sent to an outdated");
             return;
         }
@@ -637,7 +596,7 @@ where
                     }
                 };
 
-                let Some(current_config) = g_state.current_state.get(output_id) else {
+                let Some(current_config) = protocol_state.current_state.get(output_id) else {
                     warn!("SetMode: output missing from the current config");
                     return;
                 };
@@ -740,87 +699,43 @@ where
     }
 }
 
-impl<D> Dispatch<ZwlrOutputHeadV1, OutputId, D> for OutputManagementManagerState
-where
-    D: GlobalDispatch<ZwlrOutputManagerV1, OutputManagementManagerGlobalData>,
-    D: Dispatch<ZwlrOutputManagerV1, ()>,
-    D: Dispatch<ZwlrOutputHeadV1, OutputId>,
-    D: Dispatch<ZwlrOutputConfigurationV1, u32>,
-    D: Dispatch<ZwlrOutputConfigurationHeadV1, OutputConfigurationHeadState>,
-    D: Dispatch<ZwlrOutputModeV1, ()>,
-    D: OutputManagementHandler,
-    D: 'static,
-{
+impl Dispatch2<ZwlrOutputHeadV1, State> for OutputId {
     fn request(
-        _state: &mut D,
+        &self,
+        _state: &mut State,
         _client: &Client,
         _output_head: &ZwlrOutputHeadV1,
         request: zwlr_output_head_v1::Request,
-        _data: &OutputId,
         _display: &DisplayHandle,
-        _data_init: &mut DataInit<'_, D>,
+        _data_init: &mut DataInit<'_, State>,
     ) {
         match request {
             zwlr_output_head_v1::Request::Release => {}
             _ => unreachable!(),
         }
     }
-    fn destroyed(state: &mut D, client: ClientId, _resource: &ZwlrOutputHeadV1, data: &OutputId) {
+    fn destroyed(&self, state: &mut State, client: ClientId, _resource: &ZwlrOutputHeadV1) {
         if let Some(c) = state.output_management_state().clients.get_mut(&client) {
-            c.heads.remove(data);
+            c.heads.remove(self);
         }
     }
 }
 
-impl<D> Dispatch<ZwlrOutputModeV1, (), D> for OutputManagementManagerState
-where
-    D: GlobalDispatch<ZwlrOutputManagerV1, OutputManagementManagerGlobalData>,
-    D: Dispatch<ZwlrOutputManagerV1, ()>,
-    D: Dispatch<ZwlrOutputHeadV1, OutputId>,
-    D: Dispatch<ZwlrOutputConfigurationV1, u32>,
-    D: Dispatch<ZwlrOutputConfigurationHeadV1, OutputConfigurationHeadState>,
-    D: Dispatch<ZwlrOutputModeV1, ()>,
-    D: OutputManagementHandler,
-    D: 'static,
-{
+impl Dispatch2<ZwlrOutputModeV1, State> for () {
     fn request(
-        _state: &mut D,
+        &self,
+        _state: &mut State,
         _client: &Client,
         _mode: &ZwlrOutputModeV1,
         request: zwlr_output_mode_v1::Request,
-        _data: &(),
         _display: &DisplayHandle,
-        _data_init: &mut DataInit<'_, D>,
+        _data_init: &mut DataInit<'_, State>,
     ) {
         match request {
             zwlr_output_mode_v1::Request::Release => {}
             _ => unreachable!(),
         }
     }
-}
-
-#[macro_export]
-macro_rules! delegate_output_management{
-    ($(@<$( $lt:tt $( : $clt:tt $(+ $dlt:tt )* )? ),+>)? $ty: ty) => {
-        smithay::reexports::wayland_server::delegate_global_dispatch!($(@< $( $lt $( : $clt $(+ $dlt )* )? ),+ >)? $ty: [
-            smithay::reexports::wayland_protocols_wlr::output_management::v1::server::zwlr_output_manager_v1::ZwlrOutputManagerV1: $crate::protocols::output_management::OutputManagementManagerGlobalData
-        ] => $crate::protocols::output_management::OutputManagementManagerState);
-        smithay::reexports::wayland_server::delegate_dispatch!($(@< $( $lt $( : $clt $(+ $dlt )* )? ),+ >)? $ty: [
-            smithay::reexports::wayland_protocols_wlr::output_management::v1::server::zwlr_output_manager_v1::ZwlrOutputManagerV1: ()
-        ] => $crate::protocols::output_management::OutputManagementManagerState);
-        smithay::reexports::wayland_server::delegate_dispatch!($(@< $( $lt $( : $clt $(+ $dlt )* )? ),+ >)? $ty: [
-            smithay::reexports::wayland_protocols_wlr::output_management::v1::server::zwlr_output_configuration_v1::ZwlrOutputConfigurationV1: u32
-        ] => $crate::protocols::output_management::OutputManagementManagerState);
-        smithay::reexports::wayland_server::delegate_dispatch!($(@< $( $lt $( : $clt $(+ $dlt )* )? ),+ >)? $ty: [
-            smithay::reexports::wayland_protocols_wlr::output_management::v1::server::zwlr_output_head_v1::ZwlrOutputHeadV1: $crate::backend::OutputId
-        ] => $crate::protocols::output_management::OutputManagementManagerState);
-        smithay::reexports::wayland_server::delegate_dispatch!($(@< $( $lt $( : $clt $(+ $dlt )* )? ),+ >)? $ty: [
-            smithay::reexports::wayland_protocols_wlr::output_management::v1::server::zwlr_output_mode_v1::ZwlrOutputModeV1: ()
-        ] => $crate::protocols::output_management::OutputManagementManagerState);
-        smithay::reexports::wayland_server::delegate_dispatch!($(@< $( $lt $( : $clt $(+ $dlt )* )? ),+ >)? $ty: [
-            smithay::reexports::wayland_protocols_wlr::output_management::v1::server::zwlr_output_configuration_head_v1::ZwlrOutputConfigurationHeadV1: $crate::protocols::output_management::OutputConfigurationHeadState
-        ] => $crate::protocols::output_management::OutputManagementManagerState);
-    };
 }
 
 fn notify_removed_head(clients: &mut HashMap<ClientId, ClientData>, head: &OutputId) {
