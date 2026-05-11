@@ -53,8 +53,8 @@ keywords = ["wayland", "compositor", "tiling", "smithay", "wm"]
 # accesskit_unix 0.18 has a regression where it doesn't work in normal configurations.
 # accesskit 0.21 is its correct dependent version.
 # https://github.com/niri-wm/niri/issues/3594
-accesskit = { version = "0.21", optional = true }
-accesskit_unix = { version = "0.17", optional = true }
+accesskit = { version = "0.24", optional = true }
+accesskit_unix = { version = "0.21", optional = true }
 anyhow.workspace = true
 arrayvec = "0.7.6"
 async-channel = "2.5.0"
@@ -68,7 +68,7 @@ calloop = { version = "0.14.4", features = [
     "signals",
 ] }
 clap = { workspace = true, features = ["string"] }
-clap_complete = "4.6.4"
+clap_complete = "4.6.5"
 clap_complete_nushell = "4.6.0"
 directories = "6.0.0"
 drm-ffi = "0.9.1"
@@ -165,7 +165,7 @@ profile-with-tracy-allocations = ["profile-with-tracy"]
 dinit = []
 
 [lints.clippy]
-new_without_default = "allow"
+new_without_default.level = "allow"
 collapsible_match = "allow"
 
 [profile.release]
