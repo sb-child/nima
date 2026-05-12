@@ -2,7 +2,7 @@
 members = ["niri-config", "niri-ipc", "niri-visual-tests"]
 
 [workspace.package]
-version = "26.4.0"
+version = "26.4.1"
 description = "A scrollable-tiling Wayland compositor"
 authors = ["Ivan Molodetskikh <yalterz@gmail.com>"]
 license = "GPL-3.0-or-later"
@@ -166,7 +166,7 @@ dinit = []
 
 [lints.clippy]
 new_without_default.level = "allow"
-collapsible_match = "allow"
+collapsible_match.level = "allow"
 
 [profile.release]
 debug = "line-tables-only"
