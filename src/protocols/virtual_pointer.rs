@@ -322,7 +322,7 @@ impl GlobalDispatch2<ZwlrVirtualPointerManagerV1, State> for VirtualPointerManag
     }
 
     fn can_view(&self, client: &wayland_server::Client) -> bool {
-        (self.filter)(&client)
+        (self.filter)(client)
     }
 }
 

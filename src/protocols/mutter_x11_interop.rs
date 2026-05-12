@@ -48,7 +48,7 @@ impl GlobalDispatch2<MutterX11Interop, State> for MutterX11InteropManagerGlobalD
     }
 
     fn can_view(&self, client: &wayland_server::Client) -> bool {
-        (self.filter)(&client)
+        (self.filter)(client)
     }
 }
 

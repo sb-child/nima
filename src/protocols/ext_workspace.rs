@@ -201,7 +201,7 @@ fn refresh_workspace_group(protocol_state: &mut ExtWorkspaceManagerState, output
     // Send workspace_enter for all existing workspaces on this output.
     for group in &data.instances {
         let manager: &ExtWorkspaceManagerV1 = group.data().unwrap();
-        for (_, ws) in protocol_state.workspaces.iter() {
+        for ws in protocol_state.workspaces.values() {
             if ws.output.as_ref() != Some(output) {
                 continue;
             }
@@ -531,7 +531,7 @@ impl GlobalDispatch2<ExtWorkspaceManagerV1, State> for ExtWorkspaceGlobalData {
     }
 
     fn can_view(&self, client: &wayland_server::Client) -> bool {
-        (self.filter)(&client)
+        (self.filter)(client)
     }
 }
 

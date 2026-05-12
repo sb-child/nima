@@ -10,7 +10,7 @@ repository.workspace = true
 [dependencies]
 bitflags.workspace = true
 csscolorparser = "0.8.3"
-knuffel = { git = "https://github.com/sb-child/knuffel.git", rev = "e027a05379ac312a422af112c767c3842a2f527c" }
+knuffel = { git = "https://github.com/sb-child/knuffel.git", rev = "72cebdee209523726329a0db3da75a9ea747f1cd" }
 miette = { version = "7.6.0", features = ["fancy-no-backtrace"] }
 niri-ipc = { path = "../niri-ipc" }
 regex = "1.12.3"

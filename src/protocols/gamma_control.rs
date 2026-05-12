@@ -78,7 +78,7 @@ impl GlobalDispatch2<ZwlrGammaControlManagerV1, State> for GammaControlManagerGl
     }
 
     fn can_view(&self, client: &wayland_server::Client) -> bool {
-        (self.filter)(&client)
+        (self.filter)(client)
     }
 }
 

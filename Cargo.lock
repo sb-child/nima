@@ -1843,7 +1843,7 @@ checksum = "e2db585e1d738fc771bf08a151420d3ed193d9d895a36df7f6f8a9456b911ddc"
 [[package]]
 name = "knuffel"
 version = "3.2.0"
-source = "git+https://github.com/sb-child/knuffel.git?rev=e027a05379ac312a422af112c767c3842a2f527c#e027a05379ac312a422af112c767c3842a2f527c"
+source = "git+https://github.com/sb-child/knuffel.git?rev=72cebdee209523726329a0db3da75a9ea747f1cd#72cebdee209523726329a0db3da75a9ea747f1cd"
 dependencies = [
  "base64",
  "chumsky",
@@ -1856,7 +1856,7 @@ dependencies = [
 [[package]]
 name = "knuffel-derive"
 version = "3.2.0"
-source = "git+https://github.com/sb-child/knuffel.git?rev=e027a05379ac312a422af112c767c3842a2f527c#e027a05379ac312a422af112c767c3842a2f527c"
+source = "git+https://github.com/sb-child/knuffel.git?rev=72cebdee209523726329a0db3da75a9ea747f1cd#72cebdee209523726329a0db3da75a9ea747f1cd"
 dependencies = [
  "heck",
  "proc-macro-error2",
@@ -2880,8 +2880,7 @@ dependencies = [
 [[package]]
 name = "proc-macro-error-attr2"
 version = "2.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "96de42df36bb9bba5542fe9f1a054b8cc87e172759a1868aa05c1f3acc89dfc5"
+source = "git+https://github.com/sb-child/proc-macro-error-2.git?rev=e570975b19dfeea9e416722db9ea77418ca5661c#e570975b19dfeea9e416722db9ea77418ca5661c"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -2890,8 +2889,7 @@ dependencies = [
 [[package]]
 name = "proc-macro-error2"
 version = "2.0.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "11ec05c52be0a07b08061f7dd003e7d7092e0472bc731b4af7bb1ef876109802"
+source = "git+https://github.com/sb-child/proc-macro-error-2.git?rev=e570975b19dfeea9e416722db9ea77418ca5661c#e570975b19dfeea9e416722db9ea77418ca5661c"
 dependencies = [
  "proc-macro-error-attr2",
  "proc-macro2",

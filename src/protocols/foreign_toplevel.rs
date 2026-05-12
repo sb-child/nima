@@ -404,7 +404,7 @@ impl GlobalDispatch2<ExtForeignToplevelListV1, State> for ForeignToplevelGlobalD
     }
 
     fn can_view(&self, client: &wayland_server::Client) -> bool {
-        (self.filter)(&client)
+        (self.filter)(client)
     }
 }
 
@@ -488,7 +488,7 @@ impl GlobalDispatch2<ZwlrForeignToplevelManagerV1, State> for ForeignToplevelGlo
     }
 
     fn can_view(&self, client: &wayland_server::Client) -> bool {
-        (self.filter)(&client)
+        (self.filter)(client)
     }
 }
 

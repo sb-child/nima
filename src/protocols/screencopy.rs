@@ -297,7 +297,7 @@ impl GlobalDispatch2<ZwlrScreencopyManagerV1, State> for ScreencopyManagerGlobal
     }
 
     fn can_view(&self, client: &wayland_server::Client) -> bool {
-        (self.filter)(&client)
+        (self.filter)(client)
     }
 }
 
