@@ -165,8 +165,8 @@ profile-with-tracy-allocations = ["profile-with-tracy"]
 dinit = []
 
 [lints.clippy]
-new_without_default.level = "allow"
-collapsible_match.level = "allow"
+new_without_default = { check-cfg = [], level = "allow", priority = 0 }
+collapsible_match = { check-cfg = [], level = "allow", priority = 0 }
 
 [profile.release]
 debug = "line-tables-only"
