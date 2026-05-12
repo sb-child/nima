@@ -17,13 +17,13 @@ use super::{
 };
 use crate::animation::{Animation, Clock};
 use crate::niri_render_elements;
+use crate::render_helpers::RenderCtx;
 use crate::render_helpers::renderer::NiriRenderer;
 use crate::render_helpers::xray::XrayPos;
-use crate::render_helpers::RenderCtx;
 use crate::utils::transaction::TransactionBlocker;
 use crate::utils::{
-    center_preferring_top_left_in_area, clamp_preferring_top_left_in_area, ensure_min_max_size,
-    ensure_min_max_size_maybe_zero, ResizeEdge,
+    ResizeEdge, center_preferring_top_left_in_area, clamp_preferring_top_left_in_area,
+    ensure_min_max_size, ensure_min_max_size_maybe_zero,
 };
 use crate::window::ResolvedWindowRules;
 

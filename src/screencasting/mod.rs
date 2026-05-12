@@ -20,7 +20,7 @@ use crate::dbus::mutter_screen_cast::{self, CursorMode, ScreenCastToNiri, Stream
 use crate::niri::{CastTarget, Niri, OutputRenderElements, PointerRenderElements, State};
 use crate::niri_render_elements;
 use crate::render_helpers::{RenderCtx, RenderTarget};
-use crate::utils::{get_monotonic_time, CastSessionId, CastStreamId};
+use crate::utils::{CastSessionId, CastStreamId, get_monotonic_time};
 use crate::window::mapped::{MappedId, WindowCastRenderElements};
 
 mod pw_utils;

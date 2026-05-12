@@ -3,9 +3,9 @@ use std::cell::Cell;
 use calloop::Interest;
 use niri_config::PresetSize;
 use smithay::desktop::{
-    find_popup_root_surface, get_popup_toplevel_coords, layer_map_for_output, utils, LayerSurface,
-    PopupKeyboardGrab, PopupKind, PopupManager, PopupPointerGrab, PopupUngrabStrategy, Window,
-    WindowSurfaceType,
+    LayerSurface, PopupKeyboardGrab, PopupKind, PopupManager, PopupPointerGrab,
+    PopupUngrabStrategy, Window, WindowSurfaceType, find_popup_root_surface,
+    get_popup_toplevel_coords, layer_map_for_output, utils,
 };
 use smithay::input::pointer::Focus;
 use smithay::output::Output;
@@ -19,8 +19,8 @@ use smithay::reexports::wayland_server::protocol::wl_surface::WlSurface;
 use smithay::reexports::wayland_server::{self, Resource, WEnum};
 use smithay::utils::{Logical, Rectangle, Serial};
 use smithay::wayland::compositor::{
-    add_blocker, add_pre_commit_hook, with_states, BufferAssignment, CompositorHandler as _,
-    HookId, SurfaceAttributes,
+    BufferAssignment, CompositorHandler as _, HookId, SurfaceAttributes, add_blocker,
+    add_pre_commit_hook, with_states,
 };
 use smithay::wayland::dmabuf::get_dmabuf;
 use smithay::wayland::input_method::InputMethodSeat;
@@ -37,12 +37,12 @@ use tracing::field::Empty;
 use crate::input::move_grab::MoveGrab;
 use crate::input::resize_grab::ResizeGrab;
 use crate::input::touch_resize_grab::TouchResizeGrab;
-use crate::input::{PointerOrTouchStartData, DOUBLE_CLICK_TIME};
+use crate::input::{DOUBLE_CLICK_TIME, PointerOrTouchStartData};
 use crate::layout::ActivateWindow;
 use crate::niri::{CastTarget, PopupGrabState, State};
 use crate::utils::transaction::Transaction;
 use crate::utils::{
-    get_monotonic_time, output_matches_name, send_scale_transform, update_tiled_state, ResizeEdge,
+    ResizeEdge, get_monotonic_time, output_matches_name, send_scale_transform, update_tiled_state,
 };
 use crate::window::{InitialConfigureState, ResolvedWindowRules, Unmapped, WindowRef};
 

@@ -70,8 +70,8 @@ use crate::render_helpers::{BakedBuffer, RenderCtx};
 use crate::rubber_band::RubberBand;
 use crate::utils::transaction::{Transaction, TransactionBlocker};
 use crate::utils::{
-    ensure_min_max_size_maybe_zero, output_matches_name, output_size,
-    round_logical_in_physical_max1, ResizeEdge,
+    ResizeEdge, ensure_min_max_size_maybe_zero, output_matches_name, output_size,
+    round_logical_in_physical_max1,
 };
 use crate::window::ResolvedWindowRules;
 
@@ -1251,7 +1251,7 @@ impl<W: LayoutElement> Layout<W> {
 
     pub fn find_workspace_by_id(&self, id: WorkspaceId) -> Option<(usize, &Workspace<W>)> {
         match &self.monitor_set {
-            MonitorSet::Normal { ref monitors, .. } => {
+            MonitorSet::Normal { monitors, .. } => {
                 for mon in monitors {
                     if let Some((index, workspace)) = mon
                         .workspaces
@@ -1277,7 +1277,7 @@ impl<W: LayoutElement> Layout<W> {
 
     pub fn find_workspace_by_name(&self, workspace_name: &str) -> Option<(usize, &Workspace<W>)> {
         match &self.monitor_set {
-            MonitorSet::Normal { ref monitors, .. } => {
+            MonitorSet::Normal { monitors, .. } => {
                 for mon in monitors {
                     if let Some((index, workspace)) =
                         mon.workspaces.iter().enumerate().find(|(_, w)| {

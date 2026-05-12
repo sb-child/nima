@@ -4,8 +4,8 @@ use std::mem;
 use niri_config::{CornerRadius, Gradient, GradientRelativeTo, TabIndicatorPosition};
 use smithay::utils::{Logical, Point, Rectangle, Size};
 
-use super::tile::Tile;
 use super::LayoutElement;
+use super::tile::Tile;
 use crate::animation::{Animation, Clock};
 use crate::niri_render_elements;
 use crate::render_helpers::border::BorderRenderElement;
@@ -189,7 +189,7 @@ impl TabIndicator {
         let shared_rounded_corners = self.config.gaps_between_tabs == 0.;
         let mut tabs_left = tab_count;
 
-        let rects = self.tab_rects(area, count, scale);
+        let rects: Vec<_> = self.tab_rects(area, count, scale).collect();
         for ((shader, loc), (tab, rect)) in zip(
             zip(&mut self.shaders, &mut self.shader_locs),
             zip(tabs, rects),

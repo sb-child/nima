@@ -10,8 +10,8 @@
 //!   expected to be stable across sessions.
 //! - Workspace name: name for named workspaces, index for unnamed.
 
-use std::collections::hash_map::Entry;
 use std::collections::HashMap;
+use std::collections::hash_map::Entry;
 use std::mem;
 
 use arrayvec::ArrayVec;

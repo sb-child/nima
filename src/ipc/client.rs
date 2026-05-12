@@ -3,7 +3,7 @@ use std::iter::Peekable;
 use std::path::Path;
 use std::{env, slice};
 
-use anyhow::{anyhow, bail, Context};
+use anyhow::{Context, anyhow, bail};
 use niri_config::OutputName;
 use niri_ipc::socket::Socket;
 use niri_ipc::{

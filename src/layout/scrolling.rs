@@ -20,11 +20,11 @@ use crate::animation::{Animation, Clock};
 use crate::input::swipe_tracker::SwipeTracker;
 use crate::layout::SizingMode;
 use crate::niri_render_elements;
+use crate::render_helpers::RenderCtx;
 use crate::render_helpers::renderer::NiriRenderer;
 use crate::render_helpers::xray::XrayPos;
-use crate::render_helpers::RenderCtx;
-use crate::utils::transaction::{Transaction, TransactionBlocker};
 use crate::utils::ResizeEdge;
+use crate::utils::transaction::{Transaction, TransactionBlocker};
 use crate::window::ResolvedWindowRules;
 
 /// Amount of touchpad movement to scroll the view for the width of one working area.
@@ -2301,7 +2301,10 @@ impl<W: LayoutElement> ScrollingSpace<W> {
 
     // HACK: pass a self.data iterator in manually as a workaround for the lack of method partial
     // borrowing. Note that this method's return value does not borrow the entire &Self!
-    fn column_xs(&self, data: impl Iterator<Item = ColumnData>) -> impl Iterator<Item = f64> {
+    fn column_xs<T: Iterator<Item = ColumnData>>(
+        &self,
+        data: T,
+    ) -> impl Iterator<Item = f64> + use<W, T> {
         let gaps = self.options.layout.gaps;
         let mut x = 0.;
 
@@ -2322,10 +2325,10 @@ impl<W: LayoutElement> ScrollingSpace<W> {
             .unwrap()
     }
 
-    fn column_xs_in_render_order(
+    fn column_xs_in_render_order<T: Iterator<Item = ColumnData>>(
         &self,
-        data: impl Iterator<Item = ColumnData>,
-    ) -> impl Iterator<Item = f64> {
+        data: T,
+    ) -> impl Iterator<Item = f64> + use<W, T> {
         let active_idx = self.active_column_idx;
         let active_pos = self.column_x(active_idx);
         let offsets = self
@@ -5191,10 +5194,10 @@ impl<W: LayoutElement> Column<W> {
 
     // HACK: pass a self.data iterator in manually as a workaround for the lack of method partial
     // borrowing. Note that this method's return value does not borrow the entire &Self!
-    fn tile_offsets_iter(
+    fn tile_offsets_iter<T: Iterator<Item = TileData>>(
         &self,
-        data: impl Iterator<Item = TileData>,
-    ) -> impl Iterator<Item = Point<f64, Logical>> {
+        data: T,
+    ) -> impl Iterator<Item = Point<f64, Logical>> + use<W, T> {
         // FIXME: this should take into account always-center-single-column, which means that
         // Column should somehow know when it is being centered due to being the single column on
         // the workspace or some other reason.
@@ -5246,10 +5249,10 @@ impl<W: LayoutElement> Column<W> {
         self.tile_offsets().nth(tile_idx).unwrap()
     }
 
-    fn tile_offsets_in_render_order(
+    fn tile_offsets_in_render_order<T: Iterator<Item = TileData>>(
         &self,
-        data: impl Iterator<Item = TileData>,
-    ) -> impl Iterator<Item = Point<f64, Logical>> {
+        data: T,
+    ) -> impl Iterator<Item = Point<f64, Logical>> + use<W, T> {
         let active_idx = self.active_tile_idx;
         let active_pos = self.tile_offset(active_idx);
         let offsets = self

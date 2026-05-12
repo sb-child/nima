@@ -10,17 +10,17 @@ use std::sync::{Arc, Mutex};
 use std::time::Duration;
 use std::{io, mem};
 
-use anyhow::{anyhow, bail, ensure, Context};
+use anyhow::{Context, anyhow, bail, ensure};
 use bytemuck::cast_slice_mut;
 use drm_ffi::drm_mode_modeinfo;
 use libc::dev_t;
 use niri_config::output::Modeline;
 use niri_config::{Config, OutputName};
 use niri_ipc::{HSyncPolarity, VSyncPolarity};
+use smithay::backend::allocator::Fourcc;
 use smithay::backend::allocator::dmabuf::Dmabuf;
 use smithay::backend::allocator::format::FormatSet;
 use smithay::backend::allocator::gbm::{GbmAllocator, GbmBufferFlags, GbmDevice};
-use smithay::backend::allocator::Fourcc;
 use smithay::backend::drm::compositor::{DrmCompositor, FrameFlags, PrimaryPlaneElement};
 use smithay::backend::drm::exporter::gbm::GbmFramebufferExporter;
 use smithay::backend::drm::{
@@ -43,8 +43,8 @@ use smithay::reexports::calloop::{Dispatcher, LoopHandle, RegistrationToken};
 use smithay::reexports::drm::control::atomic::AtomicModeReq;
 use smithay::reexports::drm::control::dumbbuffer::DumbBuffer;
 use smithay::reexports::drm::control::{
-    self, connector, crtc, plane, property, AtomicCommitFlags, Device, Mode as DrmMode, ModeFlags,
-    ModeTypeFlags, PlaneType, ResourceHandle,
+    self, AtomicCommitFlags, Device, Mode as DrmMode, ModeFlags, ModeTypeFlags, PlaneType,
+    ResourceHandle, connector, crtc, plane, property,
 };
 use smithay::reexports::gbm::Modifier;
 use smithay::reexports::input::Libinput;
@@ -67,8 +67,8 @@ use crate::frame_clock::FrameClock;
 use crate::niri::{Niri, RedrawState, State};
 use crate::render_helpers::debug::draw_damage;
 use crate::render_helpers::renderer::AsGlesRenderer;
-use crate::render_helpers::{resources, shaders, RenderCtx, RenderTarget};
-use crate::utils::{get_monotonic_time, is_laptop_panel, logical_output, PanelOrientation};
+use crate::render_helpers::{RenderCtx, RenderTarget, resources, shaders};
+use crate::utils::{PanelOrientation, get_monotonic_time, is_laptop_panel, logical_output};
 
 const SUPPORTED_COLOR_FORMATS: [Fourcc; 4] = [
     Fourcc::Xrgb8888,
@@ -3394,14 +3394,14 @@ fn make_output_name(
 unsafe fn init_libinput_plugin_system(libinput: &Libinput) {
     #[cfg(have_libinput_plugin_system)]
     unsafe {
-        use std::ffi::{c_char, c_int, CString};
+        use std::ffi::{CString, c_char, c_int};
         use std::os::unix::ffi::OsStringExt;
 
         use directories::BaseDirs;
-        use input::ffi::libinput;
         use input::AsRaw as _;
+        use input::ffi::libinput;
 
-        extern "C" {
+        unsafe extern "C" {
             fn libinput_plugin_system_append_path(libinput: *const libinput, path: *const c_char);
             fn libinput_plugin_system_append_default_paths(libinput: *const libinput);
             fn libinput_plugin_system_load_plugins(

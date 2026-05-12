@@ -1,10 +1,10 @@
 use std::str::FromStr;
 
+use knuffel::Decode;
 use knuffel::ast::SpannedNode;
 use knuffel::decode::Context;
 use knuffel::errors::DecodeError;
 use knuffel::traits::ErrorSpan;
-use knuffel::Decode;
 use niri_ipc::{ConfiguredMode, HSyncPolarity, Transform, VSyncPolarity};
 
 use crate::gestures::HotCorners;

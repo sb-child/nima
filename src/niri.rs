@@ -11,7 +11,7 @@ use std::time::{Duration, Instant};
 use std::{env, mem, thread};
 
 use _server_decoration::server::org_kde_kwin_server_decoration_manager::Mode as KdeDecorationsMode;
-use anyhow::{bail, ensure, Context};
+use anyhow::{Context, bail, ensure};
 use calloop::futures::Scheduler;
 use niri_config::debug::PreviewRender;
 use niri_config::{
@@ -20,30 +20,30 @@ use niri_config::{
 };
 use smithay::backend::allocator::Fourcc;
 use smithay::backend::input::Keycode;
+use smithay::backend::renderer::Color32F;
 use smithay::backend::renderer::damage::OutputDamageTracker;
 use smithay::backend::renderer::element::memory::MemoryRenderBufferRenderElement;
 use smithay::backend::renderer::element::surface::WaylandSurfaceRenderElement;
 use smithay::backend::renderer::element::utils::{
-    select_dmabuf_feedback, CropRenderElement, Relocate, RelocateRenderElement,
-    RescaleRenderElement,
+    CropRenderElement, Relocate, RelocateRenderElement, RescaleRenderElement,
+    select_dmabuf_feedback,
 };
 use smithay::backend::renderer::element::{
-    default_primary_scanout_output_compare, Element, Id, Kind, PrimaryScanoutOutput, RenderElement,
-    RenderElementStates,
+    Element, Id, Kind, PrimaryScanoutOutput, RenderElement, RenderElementStates,
+    default_primary_scanout_output_compare,
 };
 use smithay::backend::renderer::gles::GlesRenderer;
 use smithay::backend::renderer::sync::SyncPoint;
-use smithay::backend::renderer::Color32F;
 use smithay::desktop::utils::{
-    bbox_from_surface_tree, output_update, send_dmabuf_feedback_surface_tree,
-    send_frames_surface_tree, surface_presentation_feedback_flags_from_states,
-    surface_primary_scanout_output, take_presentation_feedback_surface_tree,
-    under_from_surface_tree, update_surface_primary_scanout_output, with_surfaces_surface_tree,
-    OutputPresentationFeedback,
+    OutputPresentationFeedback, bbox_from_surface_tree, output_update,
+    send_dmabuf_feedback_surface_tree, send_frames_surface_tree,
+    surface_presentation_feedback_flags_from_states, surface_primary_scanout_output,
+    take_presentation_feedback_surface_tree, under_from_surface_tree,
+    update_surface_primary_scanout_output, with_surfaces_surface_tree,
 };
 use smithay::desktop::{
-    find_popup_root_surface, layer_map_for_output, LayerMap, LayerSurface, PopupGrab, PopupManager,
-    PopupUngrabStrategy, Space, Window, WindowSurfaceType,
+    LayerMap, LayerSurface, PopupGrab, PopupManager, PopupUngrabStrategy, Space, Window,
+    WindowSurfaceType, find_popup_root_surface, layer_map_for_output,
 };
 use smithay::input::keyboard::{Layout as KeyboardLayout, XkbConfig};
 use smithay::input::pointer::{
@@ -68,13 +68,13 @@ use smithay::reexports::wayland_server::protocol::wl_shm;
 use smithay::reexports::wayland_server::protocol::wl_surface::WlSurface;
 use smithay::reexports::wayland_server::{Client, Display, DisplayHandle, Resource};
 use smithay::utils::{
-    ClockSource, IsAlive as _, Logical, Monotonic, Physical, Point, Rectangle, Scale, Size,
-    Transform, SERIAL_COUNTER,
+    ClockSource, IsAlive as _, Logical, Monotonic, Physical, Point, Rectangle, SERIAL_COUNTER,
+    Scale, Size, Transform,
 };
 use smithay::wayland::background_effect::BackgroundEffectState;
 use smithay::wayland::compositor::{
-    with_states, with_surface_tree_downward, CompositorClientState, CompositorHandler,
-    CompositorState, HookId, SurfaceData, TraversalAction,
+    CompositorClientState, CompositorHandler, CompositorState, HookId, SurfaceData,
+    TraversalAction, with_states, with_surface_tree_downward,
 };
 use smithay::wayland::cursor_shape::CursorShapeManagerState;
 use smithay::wayland::dmabuf::DmabufState;
@@ -86,20 +86,20 @@ use smithay::wayland::keyboard_shortcuts_inhibit::{
     KeyboardShortcutsInhibitState, KeyboardShortcutsInhibitor,
 };
 use smithay::wayland::output::OutputManagerState;
-use smithay::wayland::pointer_constraints::{with_pointer_constraint, PointerConstraintsState};
+use smithay::wayland::pointer_constraints::{PointerConstraintsState, with_pointer_constraint};
 use smithay::wayland::pointer_gestures::PointerGesturesState;
 use smithay::wayland::presentation::PresentationState;
 use smithay::wayland::relative_pointer::RelativePointerManagerState;
 use smithay::wayland::security_context::SecurityContextState;
-use smithay::wayland::selection::data_device::{set_data_device_selection, DataDeviceState};
+use smithay::wayland::selection::data_device::{DataDeviceState, set_data_device_selection};
 use smithay::wayland::selection::ext_data_control::DataControlState as ExtDataControlState;
 use smithay::wayland::selection::primary_selection::PrimarySelectionState;
 use smithay::wayland::selection::wlr_data_control::DataControlState as WlrDataControlState;
 use smithay::wayland::session_lock::{LockSurface, SessionLockManagerState, SessionLocker};
 use smithay::wayland::shell::kde::decoration::KdeDecorationState;
 use smithay::wayland::shell::wlr_layer::{self, Layer, WlrLayerShellState};
-use smithay::wayland::shell::xdg::decoration::XdgDecorationState;
 use smithay::wayland::shell::xdg::XdgShellState;
+use smithay::wayland::shell::xdg::decoration::XdgDecorationState;
 use smithay::wayland::shm::ShmState;
 #[cfg(test)]
 use smithay::wayland::single_pixel_buffer::SinglePixelBufferState;
@@ -127,17 +127,17 @@ use crate::dbus::gnome_shell_introspect::{self, IntrospectToNiri, NiriToIntrospe
 #[cfg(feature = "dbus")]
 use crate::dbus::gnome_shell_screenshot::{NiriToScreenshot, ScreenshotToNiri};
 use crate::frame_clock::FrameClock;
-use crate::handlers::{configure_lock_surface, XDG_ACTIVATION_TOKEN_TIMEOUT};
+use crate::handlers::{XDG_ACTIVATION_TOKEN_TIMEOUT, configure_lock_surface};
 use crate::input::pick_color_grab::PickColorGrab;
 use crate::input::scroll_swipe_gesture::ScrollSwipeGesture;
 use crate::input::scroll_tracker::ScrollTracker;
 use crate::input::{
-    apply_libinput_settings, mods_with_finger_scroll_binds, mods_with_mouse_binds,
-    mods_with_wheel_binds, TabletData,
+    TabletData, apply_libinput_settings, mods_with_finger_scroll_binds, mods_with_mouse_binds,
+    mods_with_wheel_binds,
 };
 use crate::ipc::server::IpcServer;
-use crate::layer::mapped::LayerSurfaceRenderElement;
 use crate::layer::MappedLayer;
+use crate::layer::mapped::LayerSurfaceRenderElement;
 use crate::layout::tile::TileRenderElement;
 use crate::layout::workspace::{Workspace, WorkspaceId};
 use crate::layout::{
@@ -160,8 +160,8 @@ use crate::render_helpers::surface::push_elements_from_surface_tree;
 use crate::render_helpers::texture::TextureBuffer;
 use crate::render_helpers::xray::{Xray, XrayPos};
 use crate::render_helpers::{
-    encompassing_geo, render_to_dmabuf, render_to_encompassing_texture, render_to_shm,
-    render_to_texture, render_to_vec, shaders, RenderCtx, RenderTarget,
+    RenderCtx, RenderTarget, encompassing_geo, render_to_dmabuf, render_to_encompassing_texture,
+    render_to_shm, render_to_texture, render_to_vec, shaders,
 };
 #[cfg(feature = "xdp-gnome-screencast")]
 use crate::screencasting::Screencasting;
@@ -1249,8 +1249,7 @@ impl State {
         if self.niri.keyboard_focus != focus {
             trace!(
                 "keyboard focus changed from {:?} to {:?}",
-                self.niri.keyboard_focus,
-                focus
+                self.niri.keyboard_focus, focus
             );
 
             // Tell the windows their new focus state for window rule purposes.
@@ -1309,8 +1308,7 @@ impl State {
                 if grab.has_keyboard_grab && Some(&grab.root) != focus.surface() {
                     trace!(
                         "grab root {:?} is not the new focus {:?}, ungrabbing",
-                        grab.root,
-                        focus
+                        grab.root, focus
                     );
 
                     grab.grab.ungrab(PopupUngrabStrategy::All);
@@ -2655,7 +2653,7 @@ impl Niri {
 
     #[cfg(feature = "dbus")]
     pub fn inhibit_power_key(&mut self) -> anyhow::Result<()> {
-        use smithay::reexports::rustix::io::{fcntl_setfd, FdFlags};
+        use smithay::reexports::rustix::io::{FdFlags, fcntl_setfd};
 
         let conn = zbus::blocking::Connection::system()?;
 
@@ -3837,7 +3835,7 @@ impl Niri {
             .unwrap_or_else(|| self.seat.get_pointer().unwrap().current_location());
 
         match self.cursor_manager.cursor_image() {
-            CursorImageStatus::Surface(ref surface) => {
+            CursorImageStatus::Surface(surface) => {
                 let hotspot = with_states(surface, |states| {
                     states
                         .data_map
@@ -4389,13 +4387,13 @@ impl Niri {
 
             // Macro instead of closure to avoid borrowing push().
             macro_rules! process {
-                ($geo:expr) => {{
+                ($geo:expr) => {
                     &mut |elem| {
                         if let Some(elem) = scale_relocate_crop(elem, output_scale, zoom, $geo) {
                             push(elem.into());
                         }
                     }
-                }};
+                };
             }
 
             for (ws, geo) in mon.workspaces_with_render_geo() {

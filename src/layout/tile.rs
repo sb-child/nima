@@ -13,7 +13,7 @@ use super::opening_window::{OpenAnimation, OpeningWindowRenderElement};
 use super::shadow::Shadow;
 use super::{
     HitType, LayoutElement, LayoutElementRenderElement, LayoutElementRenderSnapshot, Options,
-    SizeFrac, RESIZE_ANIMATION_THRESHOLD,
+    RESIZE_ANIMATION_THRESHOLD, SizeFrac,
 };
 use crate::animation::{Animation, Clock};
 use crate::layout::SizingMode;
@@ -697,11 +697,7 @@ impl<W: LayoutElement> Tile<W> {
             }
         }
 
-        if self.sizing_mode.is_normal() {
-            0.
-        } else {
-            1.
-        }
+        if self.sizing_mode.is_normal() { 0. } else { 1. }
     }
 
     /// Returns `None` if the border is hidden and `Some(width)` if it should be shown.

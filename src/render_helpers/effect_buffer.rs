@@ -1,6 +1,6 @@
 use std::mem;
 
-use anyhow::{ensure, Context as _};
+use anyhow::{Context as _, ensure};
 use smithay::backend::allocator::Fourcc;
 use smithay::backend::renderer::damage::OutputDamageTracker;
 use smithay::backend::renderer::element::{Id, RenderElementStates};

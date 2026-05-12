@@ -1,11 +1,11 @@
 use std::time::Duration;
 
 use smithay::desktop::Window;
+use smithay::input::SeatHandler;
 use smithay::input::touch::{
     DownEvent, GrabStartData as TouchGrabStartData, MotionEvent, OrientationEvent, ShapeEvent,
     TouchGrab, TouchInnerHandle, UpEvent,
 };
-use smithay::input::SeatHandler;
 use smithay::output::Output;
 use smithay::utils::{IsAlive, Logical, Point, Serial};
 

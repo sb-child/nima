@@ -14,22 +14,22 @@ use super::insert_hint_element::{InsertHintElement, InsertHintRenderElement};
 use super::scrolling::{Column, ColumnWidth};
 use super::tile::Tile;
 use super::workspace::{
-    compute_working_area, OutputId, Workspace, WorkspaceAddWindowTarget, WorkspaceId,
-    WorkspaceRenderElement,
+    OutputId, Workspace, WorkspaceAddWindowTarget, WorkspaceId, WorkspaceRenderElement,
+    compute_working_area,
 };
-use super::{compute_overview_zoom, ActivateWindow, HitType, LayoutElement, Options};
+use super::{ActivateWindow, HitType, LayoutElement, Options, compute_overview_zoom};
 use crate::animation::{Animation, Clock};
 use crate::input::swipe_tracker::SwipeTracker;
 use crate::niri_render_elements;
+use crate::render_helpers::RenderCtx;
 use crate::render_helpers::renderer::NiriRenderer;
 use crate::render_helpers::shadow::ShadowRenderElement;
 use crate::render_helpers::solid_color::SolidColorRenderElement;
 use crate::render_helpers::xray::XrayPos;
-use crate::render_helpers::RenderCtx;
 use crate::rubber_band::RubberBand;
 use crate::utils::transaction::Transaction;
 use crate::utils::{
-    output_size, round_logical_in_physical, round_logical_in_physical_max1, ResizeEdge,
+    ResizeEdge, output_size, round_logical_in_physical, round_logical_in_physical_max1,
 };
 
 /// Amount of touchpad movement to scroll the height of one workspace.
@@ -1471,7 +1471,7 @@ impl<W: LayoutElement> Monitor<W> {
         }
     }
 
-    pub fn workspaces_render_geo(&self) -> impl Iterator<Item = Rectangle<f64, Logical>> {
+    pub fn workspaces_render_geo(&self) -> impl Iterator<Item = Rectangle<f64, Logical>> + use<W> {
         let scale = self.scale.fractional_scale();
         let zoom = self.overview_zoom();
 
@@ -1723,7 +1723,7 @@ impl<W: LayoutElement> Monitor<W> {
         for (ws, geo) in self.workspaces_with_render_geo() {
             // Macro instead of closure because ws and insert hint have different elem types.
             macro_rules! push {
-                () => {{
+                () => {
                     &mut |elem| {
                         let elem = CropRenderElement::from_element(elem, scale, crop_bounds);
                         if let Some(elem) = elem {
@@ -1731,7 +1731,7 @@ impl<W: LayoutElement> Monitor<W> {
                             push(scale_relocate(geo, elem));
                         }
                     }
-                }};
+                };
             }
 
             let xray_pos = XrayPos::new(geo.loc, zoom);

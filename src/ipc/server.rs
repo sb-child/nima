@@ -13,7 +13,7 @@ use calloop::futures::Scheduler;
 use calloop::io::Async;
 use directories::BaseDirs;
 use futures_util::io::{AsyncReadExt, BufReader};
-use futures_util::{select_biased, AsyncBufReadExt, AsyncWrite, AsyncWriteExt, FutureExt as _};
+use futures_util::{AsyncBufReadExt, AsyncWrite, AsyncWriteExt, FutureExt as _, select_biased};
 use niri_config::OutputName;
 use niri_ipc::state::{EventStreamState, EventStreamStatePart as _};
 use niri_ipc::{

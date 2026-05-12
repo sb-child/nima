@@ -6,7 +6,7 @@ version = "26.4.1"
 description = "A scrollable-tiling Wayland compositor"
 authors = ["Ivan Molodetskikh <yalterz@gmail.com>"]
 license = "GPL-3.0-or-later"
-edition = "2021"
+edition = "2024"
 repository = "https://github.com/niri-wm/niri"
 rust-version = "1.85"
 
@@ -27,13 +27,13 @@ tracy-client = { version = "0.18.4", default-features = false }
 [workspace.dependencies.smithay]
 # version = "0.4.1"
 git = "https://github.com/sb-child/smithnima.git"
-rev = "060e9cd9c8ae2633947bdb72cffa1748ac53922d"
+rev = "076f01d91b4a307bc78295bb06bf04ca1e32aa37"
 default-features = false
 
 [workspace.dependencies.smithay-drm-extras]
 # version = "0.1.0"
 git = "https://github.com/sb-child/smithnima.git"
-rev = "060e9cd9c8ae2633947bdb72cffa1748ac53922d"
+rev = "076f01d91b4a307bc78295bb06bf04ca1e32aa37"
 # path = "../smithay/smithay-drm-extras"
 
 [package]
@@ -165,8 +165,8 @@ profile-with-tracy-allocations = ["profile-with-tracy"]
 dinit = []
 
 [lints.clippy]
-new_without_default = { level = "allow", priority = 0 }
-collapsible_match = { level = "allow", priority = 0 }
+new_without_default = "allow"
+collapsible_match = "allow"
 
 [profile.release]
 debug = "line-tables-only"

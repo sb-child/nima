@@ -13,8 +13,8 @@ use pango::{Alignment, FontDescription};
 use pangocairo::cairo::{self, ImageSurface};
 use smithay::backend::allocator::Fourcc;
 use smithay::backend::input::TouchSlot;
-use smithay::backend::renderer::element::utils::{Relocate, RelocateRenderElement};
 use smithay::backend::renderer::element::Kind;
+use smithay::backend::renderer::element::utils::{Relocate, RelocateRenderElement};
 use smithay::backend::renderer::gles::{GlesRenderer, GlesTexture};
 use smithay::backend::renderer::{ExportMem, Texture as _};
 use smithay::input::keyboard::{Keysym, ModifiersState};
@@ -27,7 +27,7 @@ use crate::niri_render_elements;
 use crate::render_helpers::primary_gpu_texture::PrimaryGpuTextureRenderElement;
 use crate::render_helpers::solid_color::{SolidColorBuffer, SolidColorRenderElement};
 use crate::render_helpers::texture::{TextureBuffer, TextureRenderElement};
-use crate::render_helpers::{render_to_texture, RenderTarget};
+use crate::render_helpers::{RenderTarget, render_to_texture};
 use crate::utils::to_physical_precise_round;
 
 const SELECTION_BORDER: i32 = 2;
@@ -36,11 +36,9 @@ const PADDING: i32 = 8;
 const RADIUS: i32 = 16;
 const FONT: &str = "sans 14px";
 const BORDER: i32 = 4;
-const TEXT_HIDE_P: &str =
-    "Press <span face='mono' bgcolor='#2C2C2C'> Space </span> to save the screenshot.\n\
+const TEXT_HIDE_P: &str = "Press <span face='mono' bgcolor='#2C2C2C'> Space </span> to save the screenshot.\n\
      Press <span face='mono' bgcolor='#2C2C2C'> P </span> to hide the pointer.";
-const TEXT_SHOW_P: &str =
-    "Press <span face='mono' bgcolor='#2C2C2C'> Space </span> to save the screenshot.\n\
+const TEXT_SHOW_P: &str = "Press <span face='mono' bgcolor='#2C2C2C'> Space </span> to save the screenshot.\n\
      Press <span face='mono' bgcolor='#2C2C2C'> P </span> to show the pointer.";
 
 // Ideally the screenshot UI should support cross-output selections. However, that poses some

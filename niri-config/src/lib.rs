@@ -21,9 +21,9 @@ use std::io::Write as _;
 use std::path::{Path, PathBuf};
 use std::rc::Rc;
 
-use knuffel::errors::DecodeError;
 use knuffel::Decode as _;
-use miette::{miette, Context as _, IntoDiagnostic as _};
+use knuffel::errors::DecodeError;
+use miette::{Context as _, IntoDiagnostic as _, miette};
 
 #[macro_use]
 pub mod macros;

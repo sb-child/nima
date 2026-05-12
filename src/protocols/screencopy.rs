@@ -1,6 +1,6 @@
 use std::collections::{HashMap, HashSet};
-use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Duration;
 
 use calloop::generic::Generic;
@@ -19,13 +19,13 @@ use smithay::reexports::wayland_server::{
     Client, DataInit, Dispatch, DisplayHandle, GlobalDispatch, New, Resource,
 };
 use smithay::utils::{Physical, Point, Rectangle, Size, Transform};
-use smithay::wayland::{dmabuf, shm, Dispatch2, GlobalDispatch2};
+use smithay::wayland::{Dispatch2, GlobalDispatch2, dmabuf, shm};
 use wayland_backend::server::Credentials;
 use zwlr_screencopy_frame_v1::{Flags, ZwlrScreencopyFrameV1};
 use zwlr_screencopy_manager_v1::ZwlrScreencopyManagerV1;
 
 use crate::niri::State;
-use crate::utils::{get_credentials_for_client, get_monotonic_time, CastSessionId, CastStreamId};
+use crate::utils::{CastSessionId, CastStreamId, get_credentials_for_client, get_monotonic_time};
 
 const VERSION: u32 = 3;
 
