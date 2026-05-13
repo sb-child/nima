@@ -3411,7 +3411,7 @@ checksum = "67b1b7a3b5fe4f1376887184045fcf45c69e92af734b7aaddc05fb777b6fbd03"
 [[package]]
 name = "smithay"
 version = "0.7.0"
-source = "git+https://github.com/sb-child/smithnima.git?rev=076f01d91b4a307bc78295bb06bf04ca1e32aa37#076f01d91b4a307bc78295bb06bf04ca1e32aa37"
+source = "git+https://github.com/sb-child/smithnima.git?rev=4c82e9675d5bc967ecdb93e867a7654d7d888278#4c82e9675d5bc967ecdb93e867a7654d7d888278"
 dependencies = [
  "aliasable",
  "appendlist",
@@ -3486,7 +3486,7 @@ dependencies = [
 [[package]]
 name = "smithay-drm-extras"
 version = "0.1.0"
-source = "git+https://github.com/sb-child/smithnima.git?rev=076f01d91b4a307bc78295bb06bf04ca1e32aa37#076f01d91b4a307bc78295bb06bf04ca1e32aa37"
+source = "git+https://github.com/sb-child/smithnima.git?rev=4c82e9675d5bc967ecdb93e867a7654d7d888278#4c82e9675d5bc967ecdb93e867a7654d7d888278"
 dependencies = [
  "drm",
  "libdisplay-info",

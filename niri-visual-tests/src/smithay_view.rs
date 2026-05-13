@@ -228,24 +228,24 @@ mod imp {
         smithay::backend::egl::ffi::make_sure_egl_is_loaded()
             .context("error loading EGL symbols in Smithay")?;
 
-        let egl_display = egl::GetCurrentDisplay();
+        let egl_display = unsafe { egl::GetCurrentDisplay() };
         ensure!(egl_display != egl::NO_DISPLAY, "no current EGL display");
 
-        let egl_context = egl::GetCurrentContext();
+        let egl_context = unsafe { egl::GetCurrentContext() };
         ensure!(egl_context != egl::NO_CONTEXT, "no current EGL context");
 
         // There's no config ID on the EGL context and there's no current EGL surface, but we don't
         // really use it anyway so just get some random one.
         let mut egl_config_id = null();
         let mut num_configs = 0;
-        let res = egl::GetConfigs(egl_display, &mut egl_config_id, 1, &mut num_configs);
+        let res = unsafe { egl::GetConfigs(egl_display, &mut egl_config_id, 1, &mut num_configs) };
         ensure!(res == egl::TRUE, "error choosing EGL config");
         ensure!(num_configs != 0, "no EGL config");
 
-        let egl_context = EGLContext::from_raw(egl_display, egl_config_id as *const _, egl_context)
-            .context("error creating EGL context")?;
+        let egl_context = unsafe { EGLContext::from_raw(egl_display, egl_config_id as *const _, egl_context)
+            .context("error creating EGL context") }?;
 
-        let mut renderer = GlesRenderer::new(egl_context).context("error creating GlesRenderer")?;
+        let mut renderer = unsafe { GlesRenderer::new(egl_context).context("error creating GlesRenderer") }?;
 
         let dummy_texture = renderer
             .create_buffer(Fourcc::Abgr8888, Size::from((1, 1)))
